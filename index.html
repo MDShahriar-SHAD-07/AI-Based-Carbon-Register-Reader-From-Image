@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Resistor Reader</title>
+  <style>
+    :root{
+      --bg: #0b1020;
+      --bg2: #0e1428;
+      --card: #121a33;
+      --ink: #f2f5ff;
+      --muted: #9aa5c1;
+      --line: #273353;
+      --accent: #5b8cff;
+      --accent-2: #8aa7ff;
+      --ok: #3ee08f;
+      --bad: #ff6b6b;
+      --pill: #1a2547;
+      --shadow: 0 20px 50px rgba(0,0,0,.35);
+      --radius: 18px;
+      --radius-sm: 12px;
+    }
+    * { box-sizing: border-box; }
+    html,body { height:100%; }
+    body{
+      margin:0; color:var(--ink); background:
+        radial-gradient(1200px 800px at 10% -10%, #1a2a5a 0%, transparent 70%),
+        radial-gradient(1200px 900px at 110% 20%, #271a5a 0%, transparent 70%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
+      font: 15px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,'Helvetica Neue',Arial;
+    }
+
+    .wrap{ width:min(1080px, 96%); margin: 28px auto 24px; }
+
+    .header{
+      display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:16px;
+    }
+    .brand{
+      display:flex; align-items:center; gap:10px;
+      font-size:22px; font-weight:600; letter-spacing:.2px;
+    }
+    .brand .logo{
+      width:28px;height:28px; border-radius:8px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 6px 16px rgba(91,140,255,.45), inset 0 0 18px rgba(255,255,255,.25);
+    }
+    .subtle{ color:var(--muted); font-size:12px; }
+
+    .grid{
+      display:grid; gap:16px;
+      grid-template-columns: 1fr;
+    }
+    @media (min-width: 980px){
+      .grid{ grid-template-columns: 1fr 1fr; }
+    }
+
+    .card{
+      background: rgba(18,26,51,.85);
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      overflow:hidden;
+    }
+    .card .pad{ padding:18px; }
+    .card h2{ margin:0 0 8px; font-size:16px; font-weight:600; color:#e9edff; }
+
+    .btn{
+      appearance:none; border:1px solid var(--line); color:#e9edff;
+      background: linear-gradient(180deg, #1a2447, #141e3a);
+      padding:10px 14px; border-radius: 12px; cursor:pointer;
+      transition: transform .06s ease, box-shadow .15s, background .2s;
+      box-shadow: 0 8px 16px rgba(0,0,0,.18);
+      user-select:none;
+    }
+    .btn:hover{ box-shadow: 0 10px 22px rgba(0,0,0,.22); }
+    .btn:active{ transform: translateY(1px); }
+    .btn[disabled]{ opacity:.6; pointer-events:none; }
+    .btn.primary{
+      border-color: transparent;
+      background: linear-gradient(180deg, var(--accent), #4979ff);
+      color: #0b1020; font-weight: 600;
+      text-shadow: 0 1px 0 rgba(255,255,255,.35);
+    }
+    .btn.ghost{
+      background: transparent;
+      border-style: dashed;
+    }
+
+    .row{ display:flex; align-items:center; gap:10px; flex-wrap: wrap; }
+
+    .drop{
+      border:2px dashed var(--line); border-radius: 14px; padding:14px;
+      display:flex; justify-content:center; align-items:center;
+      background: rgba(20,30,60,.55);
+      transition: border-color .15s, background .15s;
+      min-height: 260px;
+    }
+    .drop.drag{ border-color: var(--accent); background: rgba(72,104,200,.15); }
+    #preview{ max-width:100%; max-height: 460px; border-radius:12px; display:block; }
+
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:7px 11px; border-radius:999px; background: var(--pill);
+      border:1px solid var(--line); font-size:14px;
+      box-shadow: inset 0 1px 1px rgba(255,255,255,.05);
+    }
+    .sw{ width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,.25) }
+    .pills{ display:flex; flex-wrap: wrap; gap:8px; }
+
+    .grid2{ display:grid; gap:12px; grid-template-columns: 1fr; }
+    @media (min-width: 660px){
+      .grid2{ grid-template-columns: repeat(3, 1fr); }
+    }
+
+    .metric{
+      background: rgba(10,16,36,.6);
+      border:1px solid var(--line);
+      border-radius: 12px; padding:10px 12px;
+    }
+    .metric .label{ color: var(--muted); font-size: 12px; margin-bottom: 6px; }
+    .metric .value{ font-size: 15px; font-weight: 600; letter-spacing:.2px; }
+
+    .toolbar{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:10px; }
+    .toolbar .spacer{ flex:1 1 auto; }
+
+    .loading .spinner{
+      width:16px;height:16px;border:2px solid rgba(255,255,255,.35); border-top-color: #fff;
+      border-radius:50%; display:inline-block; animation:spin 1s linear infinite;
+      vertical-align:-3px; margin-right:6px;
+    }
+    @keyframes spin{ to{ transform: rotate(360deg); } }
+
+    .toast{
+      position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+      padding:10px 14px; border-radius:12px;
+      background: rgba(16,24,48,.95); color:#fff;
+      border:1px solid var(--line); box-shadow: var(--shadow);
+      display:none; max-width:min(640px, 92vw);
+    }
+    .toast.show{ display:block; }
+    .toast.ok{ border-color: rgba(62,224,143,.5); color: #d9ffef; }
+    .toast.bad{ border-color: rgba(255,107,107,.5); color: #ffe5e5; }
+
+    .copy{
+      appearance:none; border:1px solid var(--line); background: transparent; color:#d9e3ff;
+      border-radius: 9px; padding:4px 8px; font-size: 12px; cursor:pointer;
+    }
+    .copy:active{ transform: translateY(1px); }
+
+    .hint{ color:var(--muted); font-size:12px; margin-top:6px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="header">
+      <div class="brand">
+        <span class="logo"></span>
+        <span>Resistor Reader</span>
+      </div>
+      <div class="subtle">Upload a close, evenly lit photo.</div>
+    </header>
+
+    <main class="grid">
+      <!-- Left: image -->
+      <section class="card">
+        <div class="pad">
+          <h2>Photo</h2>
+          <div id="drop" class="drop" aria-label="Drop image here">
+            <img id="preview" alt="" />
+          </div>
+
+          <div class="toolbar">
+            <input type="file" id="file" accept="image/*" hidden />
+            <button id="choose" class="btn">Choose image</button>
+            <button id="camera" class="btn ghost">Use camera</button>
+            <div class="spacer"></div>
+            <button id="analyze" class="btn primary" disabled>
+              Analyze
+            </button>
+            <button id="flip" class="btn" disabled>
+              Flip orientation
+            </button>
+          </div>
+          <div class="hint">Tip: neutral background (white/gray), resistor centered, avoid glare.</div>
+        </div>
+      </section>
+
+      <!-- Right: result -->
+      <section class="card">
+        <div class="pad">
+          <h2>Result</h2>
+
+          <div class="subtle" style="margin-bottom:6px">Band colors</div>
+          <div id="colors" class="pills" style="min-height:38px"></div>
+
+          <div class="grid2" style="margin-top:14px">
+            <div class="metric">
+              <div class="label">Value</div>
+              <div class="value" id="value">—</div>
+              <button class="copy" id="copyValue" title="Copy">Copy</button>
+            </div>
+            <div class="metric">
+              <div class="label">Snapped (E-series)</div>
+              <div class="value" id="snapped">—</div>
+              <button class="copy" id="copySnap" title="Copy">Copy</button>
+            </div>
+            <div class="metric">
+              <div class="label">Tolerance</div>
+              <div class="value" id="tol">—</div>
+            </div>
+          </div>
+
+          <div class="metric" style="margin-top:12px">
+            <div class="label">Expected range</div>
+            <div class="value" id="range">—</div>
+          </div>
+
+          <div id="status" class="hint" style="margin-top:10px"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ---------- Config (silent support for ?api=) ---------- */
+//const API = new URLSearchParams(location.search).get('api') || "http://127.0.0.1:8000";
+// Force the LAN API base for phone use:
+const API = "http://10.15.39.86:8000"; //change it accordingly
+console.log("Using API:", API);
+
+
+/* ---------- Elements ---------- */
+const fileEl   = document.getElementById('file');
+const chooseEl = document.getElementById('choose');
+const cameraEl = document.getElementById('camera');
+const analyzeEl= document.getElementById('analyze');
+const flipEl   = document.getElementById('flip');
+const dropEl   = document.getElementById('drop');
+const imgEl    = document.getElementById('preview');
+
+const pillsEl  = document.getElementById('colors');
+const valueEl  = document.getElementById('value');
+const snapEl   = document.getElementById('snapped');
+const tolEl    = document.getElementById('tol');
+const rangeEl  = document.getElementById('range');
+const statusEl = document.getElementById('status');
+const toastEl  = document.getElementById('toast');
+const copyValueEl = document.getElementById('copyValue');
+const copySnapEl  = document.getElementById('copySnap');
+
+/* ---------- State ---------- */
+const COLOR_SWATCH = {
+  black:'#000000', brown:'#6d3d00', red:'#c62828', orange:'#ef6c00',
+  yellow:'#f6c000', green:'#2e7d32', blue:'#1565c0', violet:'#7b1fa2',
+  grey:'#9e9e9e', white:'#ffffff', gold:'#c6a700', silver:'#c0c0c0'
+};
+let lastColors = null;
+let lastFile   = null;
+let lastJson   = null;
+
+/* ---------- UI helpers ---------- */
+function showToast(msg, ok=false){
+  toastEl.textContent = msg;
+  toastEl.className = 'toast show ' + (ok ? 'ok' : 'bad');
+  setTimeout(()=>toastEl.classList.remove('show'), 2200);
+}
+function setPreview(file){
+  const url = URL.createObjectURL(file);
+  imgEl.src = url;
+  analyzeEl.disabled = false;
+  flipEl.disabled = false;
+}
+function setLoading(on){
+  analyzeEl.disabled = on || !lastFile;
+  analyzeEl.innerHTML = on ? '<span class="spinner"></span>Analyzing…' : 'Analyze';
+}
+
+/* ---------- Rendering ---------- */
+function renderColors(list){
+  pillsEl.innerHTML = '';
+  if(!list || !list.length){ lastColors=null; return; }
+  lastColors = list.slice();
+  list.forEach(name=>{
+    const pill = document.createElement('span');
+    pill.className = 'pill';
+    const sw = document.createElement('span');
+    sw.className = 'sw';
+    sw.style.background = (COLOR_SWATCH[name] || '#fff');
+    if(name === 'white') sw.style.border = '1px solid #ddd';
+    pill.appendChild(sw);
+    pill.appendChild(document.createTextNode(' ' + name));
+    pillsEl.appendChild(pill);
+  });
+}
+function renderValues(json){
+  valueEl.textContent = json.value_display ?? '—';
+  snapEl.textContent  = json.snapped_display ?? '—';
+  tolEl.textContent   = (json.tolerance_pct != null) ? (json.tolerance_pct + '%') : '—';
+
+  // Range calculation from raw ohms + tolerance
+  if (typeof json.value_ohms === 'number' && json.tolerance_pct != null) {
+    const lo = json.value_ohms * (1 - json.tolerance_pct/100);
+    const hi = json.value_ohms * (1 - 0 + json.tolerance_pct/100);
+    rangeEl.textContent = humanOhms(lo) + ' – ' + humanOhms(hi);
+  } else {
+    rangeEl.textContent = '—';
+  }
+}
+function renderStatus(ok, message){
+  statusEl.textContent = ok ? 'Analysis complete.' : (message || 'Could not analyze image.');
+  statusEl.style.color = ok ? 'var(--ok)' : 'var(--bad)';
+}
+
+/* ---------- Utils ---------- */
+function humanOhms(v){
+  if (v == null || !isFinite(v)) return '—';
+  const abs = Math.abs(v);
+  const table = [['GΩ',1e9],['MΩ',1e6],['kΩ',1e3],['Ω',1]];
+  for (const [name,scale] of table) {
+    if (abs >= scale) return (v/scale).toFixed(2).replace(/\.00$/,'') + ' ' + name;
+  }
+  return v.toFixed(2) + ' Ω';
+}
+
+/* ---------- Networking ---------- */
+async function analyzeFile(file){
+  const fd = new FormData();
+  fd.append('file', file);
+  const res = await fetch(`${API.replace(/\/$/, '')}/analyze`, { method:'POST', body: fd });
+  if(!res.ok){
+    const txt = await res.text().catch(()=> '');
+    throw new Error(`Server ${res.status}: ${txt || 'Request failed'}`);
+  }
+  return await res.json();
+}
+
+/* ---------- Events ---------- */
+chooseEl.addEventListener('click', ()=> fileEl.click());
+cameraEl.addEventListener('click', ()=>{
+  // Hint: many desktop browsers ignore capture; mobile will open camera.
+  fileEl.setAttribute('capture', 'environment');
+  fileEl.click();
+});
+fileEl.addEventListener('change', ()=>{
+  const f = fileEl.files?.[0];
+  if(!f) return;
+  lastFile=f; setPreview(f); lastJson=null;
+  renderColors([]); renderValues({}); renderStatus(true,'Ready.');
+});
+
+['dragenter','dragover'].forEach(ev=>{
+  dropEl.addEventListener(ev, e=>{ e.preventDefault(); dropEl.classList.add('drag'); });
+});
+['dragleave','drop'].forEach(ev=>{
+  dropEl.addEventListener(ev, e=>{ e.preventDefault(); dropEl.classList.remove('drag'); });
+});
+dropEl.addEventListener('drop', e=>{
+  const f = e.dataTransfer?.files?.[0];
+  if(f){ lastFile=f; setPreview(f); lastJson=null; renderColors([]); renderValues({}); renderStatus(true,'Ready.'); }
+});
+
+analyzeEl.addEventListener('click', async ()=>{
+  if(!lastFile){ showToast('Choose an image first.'); return; }
+  setLoading(true);
+  try{
+    const json = await analyzeFile(lastFile);
+    lastJson = json;
+    renderColors(json.colors || []);
+    renderValues(json);
+    renderStatus(!!json.ok, json.message);
+    showToast('Analysis complete.', true);
+  }catch(err){
+    renderColors([]); renderValues({}); renderStatus(false, err?.message);
+    showToast(err?.message || 'Failed to analyze', false);
+  }finally{
+    setLoading(false);
+  }
+});
+
+flipEl.addEventListener('click', ()=>{
+  if(!lastColors) return;
+  lastColors = [...lastColors].reverse();
+  renderColors(lastColors);
+});
+
+copyValueEl.addEventListener('click', async ()=>{
+  if(!lastJson?.value_display) return;
+  try{ await navigator.clipboard.writeText(lastJson.value_display); showToast('Value copied.', true); }catch{}
+});
+copySnapEl.addEventListener('click', async ()=>{
+  if(!lastJson?.snapped_display) return;
+  try{ await navigator.clipboard.writeText(lastJson.snapped_display); showToast('Snapped value copied.', true); }catch{}
+});
+</script>
+</body>
+</html>

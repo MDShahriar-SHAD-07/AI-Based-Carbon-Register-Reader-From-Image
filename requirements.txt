@@ -1,0 +1,9 @@
+
+fastapi==0.115.5
+uvicorn==0.32.0
+numpy==2.1.3
+opencv-python-headless==4.10.0.84
+colormath==3.0.0
+ruptures==1.1.9
+pillow==10.4.0
+google-generativeai==0.8.3
