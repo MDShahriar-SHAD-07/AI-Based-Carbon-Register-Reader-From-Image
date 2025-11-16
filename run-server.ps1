@@ -6,7 +6,7 @@ param(
 Write-Host "Starting Resistor Reader..." -ForegroundColor Cyan
 
 # --- Set env (edit your real key) ---
-$env:GOOGLE_API_KEY = "AIzaSyBRWoZnJ0MdfulxvJZHVrlz_R1E9ouWg3E"
+$env:GOOGLE_API_KEY = "YOUR_API_KEY"
 $env:GEMINI_MODEL   = "gemini-2.5-flash"
 
 # --- Activate venv ---
@@ -42,3 +42,4 @@ Write-Host ""
 # --- Run backend bound to LAN ---
 # Ensure CORS in main.py allows your phone origin (or use allow_origins=['*'] for testing)
 uvicorn main:app --host 0.0.0.0 --port ${ApiPort} --reload
+
